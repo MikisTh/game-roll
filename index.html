@@ -2,100 +2,128 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Roleta Matricial 12x12</title>
+<title>Roleta Matrix Cyber 12x12</title>
 
 <style>
-  body{
-    margin:0;
-    font-family: Arial, sans-serif;
-    background:#0f0f1a;
-    color:white;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: radial-gradient(circle at top,#0a0a1a,#000);
+  color:#00ffcc;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  overflow-x:hidden;
+}
 
-  h1{
-    margin-top:20px;
-    color:#00ffcc;
-  }
+h1{
+  margin-top:20px;
+  text-shadow:0 0 10px #00ffcc;
+}
 
-  .container{
-    display:flex;
-    gap:30px;
-    margin-top:20px;
-    flex-wrap:wrap;
-    justify-content:center;
-  }
+.container{
+  display:flex;
+  gap:40px;
+  margin-top:20px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
 
-  /* ROleta */
-  .roleta{
-    width:200px;
-    height:200px;
-    border-radius:50%;
-    border:6px solid #00ffcc;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:40px;
-    transition: transform 2s ease-out;
-    background: radial-gradient(circle,#1a1a2e,#000);
-  }
+/* ROleta */
+.roleta{
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  border:4px solid #00ffcc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:45px;
+  background: radial-gradient(circle,#111,#000);
+  box-shadow:0 0 25px #00ffcc;
+  transition: transform 2s cubic-bezier(.2,.8,.2,1);
+}
 
-  button{
-    margin-top:15px;
-    padding:10px 20px;
-    background:#00ffcc;
-    border:none;
-    cursor:pointer;
-    font-weight:bold;
-  }
+button{
+  margin-top:15px;
+  padding:12px 25px;
+  background:#00ffcc;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 0 15px #00ffcc;
+}
 
-  /* MATRIZ */
-  .grid{
-    display:grid;
-    grid-template-columns: repeat(12, 20px);
-    grid-gap:3px;
-    background:#111;
-    padding:10px;
-    border-radius:10px;
-  }
+.panel{
+  text-align:center;
+}
 
-  .cell{
-    width:20px;
-    height:20px;
-    background:#222;
-    font-size:10px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:3px;
-  }
+/* MATRIZ */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(12, 22px);
+  gap:4px;
+  background:#0b0b16;
+  padding:12px;
+  border-radius:12px;
+  box-shadow:0 0 20px #00ffcc33;
+}
 
-  .active{
-    background:#00ffcc;
-    color:black;
-    font-weight:bold;
-  }
+.cell{
+  width:22px;
+  height:22px;
+  background:#111;
+  font-size:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:3px;
+  transition:0.2s;
+}
 
-  .info{
-    margin-top:10px;
-    font-size:14px;
-    color:#aaa;
-  }
+.active{
+  background:#00ffcc;
+  color:black;
+  box-shadow:0 0 10px #00ffcc;
+  transform:scale(1.2);
+}
+
+/* INFO */
+.info{
+  margin-top:10px;
+  font-size:14px;
+  color:#aaa;
+}
+
+.score{
+  margin-top:10px;
+  font-size:16px;
+  color:#fff;
+  text-shadow:0 0 5px #00ffcc;
+}
+
+.history{
+  margin-top:10px;
+  font-size:12px;
+  color:#888;
+  max-width:200px;
+}
 </style>
 </head>
 
 <body>
 
-<h1>🎡 Roleta Matricial 12x12</h1>
+<h1>🎰 MATRIX ROULETTE 12x12</h1>
 
 <div class="container">
 
-  <div>
+  <div class="panel">
     <div class="roleta" id="roleta">?</div>
     <button onclick="girar()">GIRAR</button>
+
+    <div class="score">⭐ Pontos: <span id="score">0</span></div>
     <div class="info" id="info">Sequência: -</div>
+    <div class="history" id="history">Histórico vazio</div>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -106,8 +134,10 @@
 const simbolos = ["✦","✧","✪","✩","✺","✹","✶","✷","✸","✴","✵","✳"];
 
 let grid = document.getElementById("grid");
+let score = 0;
+let history = [];
 
-// criar matriz 12x12
+// cria matriz 12x12
 for(let i=0;i<144;i++){
   let div = document.createElement("div");
   div.classList.add("cell");
@@ -115,31 +145,66 @@ for(let i=0;i<144;i++){
   grid.appendChild(div);
 }
 
+// som simples (sem arquivos)
+function beep(freq){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+
+  o.frequency.value = freq;
+  o.type = "sine";
+  o.connect(g);
+  g.connect(ctx.destination);
+
+  g.gain.value = 0.05;
+  o.start();
+  o.stop(ctx.currentTime + 0.1);
+}
+
 function girar(){
   const roleta = document.getElementById("roleta");
   const info = document.getElementById("info");
+  const scoreEl = document.getElementById("score");
+  const historyEl = document.getElementById("history");
 
-  let rotacao = Math.floor(Math.random()*3600);
+  // rotação forte estilo cassino
+  let rotacao = Math.floor(Math.random()*3600 + 720);
   roleta.style.transform = `rotate(${rotacao}deg)`;
 
   let simbolo = simbolos[Math.floor(Math.random()*simbolos.length)];
   roleta.innerText = simbolo;
 
-  // sequência simbólica
+  // som de giro
+  beep(200);
+
+  // sequência
   let seq = "";
-  for(let i=0;i<5;i++){
+  for(let i=0;i<6;i++){
     seq += simbolos[Math.floor(Math.random()*simbolos.length)];
   }
 
   info.innerText = "Sequência: " + seq;
 
-  // ativa célula aleatória na matriz
+  // pontuação (baseada em repetição)
+  let ganho = Math.floor(Math.random()*10) + 1;
+  score += ganho;
+  scoreEl.innerText = score;
+
+  // histórico
+  history.unshift(seq + " +" + ganho);
+  if(history.length > 5) history.pop();
+  historyEl.innerHTML = history.join("<br>");
+
+  // ativa matriz com efeito cascata
   let cells = document.querySelectorAll(".cell");
   cells.forEach(c => c.classList.remove("active"));
 
-  for(let i=0;i<5;i++){
-    let rand = Math.floor(Math.random()*cells.length);
-    cells[rand].classList.add("active");
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      let rand = Math.floor(Math.random()*cells.length);
+      cells[rand].classList.add("active");
+      beep(300 + i*50);
+    }, i*120);
   }
 }
 </script>
